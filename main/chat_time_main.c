@@ -4,6 +4,7 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include "f1ser.c"
 
 int row, col;
 int count = 0;
@@ -14,15 +15,19 @@ void main_screen(void );
 void chat_menu(void );
 void time_menu(void );
 void exiting(void );
+void exec_func1(void);
+void tty_mode(int how);
 
 int main()
 {
 	int c;
 
+    tty_mode(0); // 현재 tty 저장 
 	initscr(); // 초기화
 	crmode();
 	noecho();
 	clear();
+
 
 	main_screen();	// 메인 화면
 
@@ -40,7 +45,7 @@ int main()
 				c= getchar();
 				if(c=='1'){ 
 					clear();
-					refresh();					
+                    exec_func1();    					
 				}
 				if(c=='2'){ 
 					clear();
@@ -76,7 +81,7 @@ int main()
 	}
 
 	exiting();  // 종료 화면
-
+    tty_mode(1);
 	endwin(); // 종료
 
 	return 0;
@@ -88,7 +93,7 @@ void main_screen(void ) // 메인메뉴
 	addstr("******************* Chatting and Timetable **********************");
 	move(2, 2);
 	addstr(">> press key : '1' : Chatting, '2' : Time Table, 'Q' : exit");	
-
+;
 	move(5, 2);
 	addstr("         1. Chatting");
 
@@ -196,4 +201,58 @@ void move_msg(int signum) // 종료화면 디테일
 	count++;
 	col++;			
 	refresh();		
+}
+
+void exec_func1(void){ // 기능 1번
+    
+    int port, ppl;
+    char tmp[100];
+    clear();
+    refresh();
+    tty_mode(1);
+	printf("\n******************* Create Chatting Room **********************\n\n");
+	printf(">> press key : 'B' : back \n\n\n\n\n");	
+
+	printf("         1. Type the port number: ");
+    scanf("%s", tmp);
+    if(!strcmp(tmp,"B")){
+        noecho();
+        crmode();
+        clear();
+       
+        chat_menu();
+        refresh();
+        return;
+    }
+    else
+        port = atoi(tmp);
+    
+    printf("\n\n\n\n");
+    printf("         2. Type the max people allowed in the room: ");
+    scanf("%s", tmp);
+    if(!strcmp(tmp,"B")){
+        noecho();
+        crmode();
+        clear();
+        chat_menu();
+        refresh();
+        return;
+    }
+    else
+        ppl = atoi(tmp);
+    printf("\n");
+    
+    clear();
+    refresh();
+    f1ser(port, ppl);
+}
+
+void tty_mode(int how)
+{
+    static struct termios original_mode;
+    
+    if(how == 0)
+        tcgetattr(0, &original_mode);
+    else
+        tcsetattr(0,TCSANOW, &original_mode);
 }
