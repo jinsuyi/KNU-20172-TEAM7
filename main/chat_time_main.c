@@ -155,7 +155,7 @@ void time_menu()  // 시간표 메뉴
 	addstr(">> press key : '1' : Notify, '2' : Modify, 'B' : back");	
 
 	move(5, 2);
-	addstr("         1. Notify my timetable");
+	addstr("         1. Notify my timetable & Send Message");
 
 	move(8, 2);
 	addstr("         2. Modify my timetable");
