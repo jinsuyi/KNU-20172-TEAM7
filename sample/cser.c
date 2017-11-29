@@ -7,13 +7,12 @@
 #include<sys/select.h>
 
 #define MAXLINE 100
-int MAX_CLIENT =  1000;
+#define MAX_CLIENT 1000
 #define CHATDATA 1024
 #define INVALID_SOCK -1
 
-int usr_max_client = 0;
 char greeting[] = "Welcome to chatting room\n";
-char ERROR[] = " Sorry, the room is full!\n";
+char ERROR[] = "Sorry No More Connection\n";
 char quit[] = "/quit\n";
 char list[] = "/list\n";
 char smsg[] = "/smsg";
@@ -24,12 +23,13 @@ struct List_c {
 	char nick[CHATDATA];
 	char ip[40];
 	int port;
-}list_c[1000];
+}list_c[MAX_CLIENT];
 
-int pushClient(int connfd, char* c_nick, char* c_ip, int c_port) {
+int
+pushClient(int connfd, char* c_nick, char* c_ip, int c_port) {
 	int i;
 
-	for (i = 0; i<usr_max_client; i++) {
+	for (i = 0; i<MAX_CLIENT; i++) {
 		if (list_c[i].socket_num == INVALID_SOCK) {
 			list_c[i].socket_num = connfd;
 			strcpy(list_c[i].nick, c_nick);
@@ -48,7 +48,7 @@ int popClient(int s)
 	int i;
 
 
-	for (i = 0; i<usr_max_client; i++) {
+	for (i = 0; i<MAX_CLIENT; i++) {
 		if (s == list_c[i].socket_num) {
 			list_c[i].socket_num = INVALID_SOCK;
 			memset(list_c[i].nick, 0, sizeof(list_c[i].nick));
@@ -64,10 +64,10 @@ constr_func(int i, int index) {
 	char buf1[MAXLINE];
 
 	memset(buf1, 0, sizeof(buf1));
-	sprintf(buf1, "     [%s is connected]\r\n", list_c[index].nick);
+	sprintf(buf1, "[%s is connected]\r\n", list_c[index].nick);
 	write(list_c[i].socket_num, buf1, strlen(buf1));
 
-	sprintf(buf1, "     [%s is connected]\r\n", list_c[i].nick);
+	sprintf(buf1, "[%s is connected]\r\n", list_c[i].nick);
 	write(list_c[index].socket_num, buf1, strlen(buf1));
 }
 void
@@ -77,10 +77,10 @@ quit_func(int i) {
 	char buf1[MAXLINE];
 
 	memset(buf1, 0, sizeof(buf1));
-	printf("    %s is leaved at %s\r\n", list_c[i].nick, list_c[i].ip);
+	printf("%s is leaved at %s\r\n", list_c[i].nick, list_c[i].ip);
 	for (j = 0; j<MAX_CLIENT; j++)
 		if (j != i && list_c[j].socket_num != INVALID_SOCK) {
-			sprintf(buf1, "[    %s is leaved]\r\n", list_c[i].nick);
+			sprintf(buf1, "[%s is leaved]\r\n", list_c[i].nick);
 			write(list_c[j].socket_num, buf1, strlen(buf1));
 		}
 }
@@ -92,11 +92,11 @@ list_func(int i) {
 	memset(buf1, 0, sizeof(buf1));
 	for (j = 0; j<MAX_CLIENT; j++)
 		if (list_c[j].socket_num != INVALID_SOCK)cnt++;
-	sprintf(buf1, "     [the number of current user is %d]\r\n", cnt);
+	sprintf(buf1, "[the number of current user is %d]\r\n", cnt);
 	write(list_c[i].socket_num, buf1, strlen(buf1));
 	for (j = 0; j<MAX_CLIENT; j++)
 		if (list_c[j].socket_num != INVALID_SOCK) {
-			sprintf(buf1, "     [%s from %s:%d]\r\n", list_c[j].nick, list_c[j].ip, list_c[j].port);
+			sprintf(buf1, "[%s from %s:%d]\r\n", list_c[j].nick, list_c[j].ip, list_c[j].port);
 			write(list_c[i].socket_num, buf1, strlen(buf1));
 		}
 }
@@ -132,65 +132,42 @@ smsg_func(char* chatData, int i) {
 	}
 }
 
-int make_client(char* bufl, int port, char* nickname){
-
-    char *args[4];
-    int i;
-
-    for(i=0;i<5;i++){
-        args[i] = (char *)malloc(100);
-    }
-    
-    args[0] = "./client";
-    strcpy(args[1], bufl);
-    sprintf(args[2], "%d", port);
-    strcpy(args[3], nickname);
-    args[4] = 0;
-
-
-    execvp(args[0], args);
-    perror("client execute fail\n");
-    exit(1);
-}
-
-int f1ser(int port,  int ppl)
+main(int argc, char *argv[])
 {
-
 	int connfd, listenfd;
 	struct sockaddr_in servaddr, cliaddr;
 	int clilen;
-	int maxfd = 0;  
+	int maxfd = 0;
 	int i, j, n;
 	fd_set rset;
-    int pid;
+
 	int index;
 
 	char* token = NULL;
 	char buf1[MAXLINE];
 	char buf2[MAXLINE];
 	char chatData[CHATDATA];
-    char nick[100];
-    
-    printf("\n ******************** server domain *********************\n\n");
-    printf(">> press key : ^\\ to quit\n\n\n");
-    
-    
-    MAX_CLIENT = ppl;
-    usr_max_client = MAX_CLIENT;
-    printf("     Room max = %d\n", usr_max_client);
+
+
+
+
+	if (argc<2) {
+		printf("usage: %s port_number\n", argv[0]);
+		exit(-1);
+	}
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(port);
+	servaddr.sin_port = htons(atoi(argv[1]));
 
 	if (bind(listenfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) == -1) {
-		printf("   Error : that port is already being used\n");
+		printf("Can not Bind\n");
 		return -1;
 	}
 	if (listen(listenfd, MAX_CLIENT) == -1) {
-		printf("    Room is full\n");
+		printf("listen Fail\n");
 		return -1;
 	}
 
@@ -199,20 +176,7 @@ int f1ser(int port,  int ppl)
 
 	memset(buf1, 0, sizeof(buf1));
 	inet_ntop(AF_INET, &servaddr.sin_addr, buf1, sizeof(buf1));
-	printf("    [server address is %s : %d]\r\n", buf1, ntohs(servaddr.sin_port));
-
-    printf("    type your nickname : ");
-    scanf("%s",nick);
-
-    pid = fork();
-    if( pid == -1)
-        perror("fork");
-    else if(pid == 0){
-        printf("**********Notice : you are admin. You get to see the address of the joiner.\n");
-        printf("**********Warning : if you close the room, other user in the room will no long be able to chat\n");
-                }
-    else
-        make_client(buf1,port,nick) ;
+	printf("[server address is %s : %d]\r\n", buf1, ntohs(servaddr.sin_port));
 
 	for (; ; )
 	{
@@ -229,11 +193,11 @@ int f1ser(int port,  int ppl)
 		maxfd++;
 
 		if (select(maxfd, &rset, (fd_set *)0, (fd_set *)0, (struct timeval *)0) < 0) {
-			printf("    Select error\n");
+			printf("Select error\n");
 			exit(1);
 		}
 
-		if (FD_ISSET(listenfd, &rset)) { //클라이언트 push , 연결메시지 
+		if (FD_ISSET(listenfd, &rset)) {
 			clilen = sizeof(cliaddr);
 			if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) > 0) {
 				memset(buf1, 0, sizeof(buf1));
@@ -241,10 +205,7 @@ int f1ser(int port,  int ppl)
 				read(connfd, buf1, sizeof(buf1));//read client's nickname
 				inet_ntop(AF_INET, &cliaddr.sin_addr, buf2, sizeof(buf2));
 				index = pushClient(connfd, buf1, buf2, ntohs(cliaddr.sin_port));//push socknum,nick,ip,port_num of client
-                if(index!=-1)
-                    printf("    %s is connected from %s\r\n", list_c[index].nick, list_c[index].ip);
-                else
-                    printf("    due to the room full, connection rejected\n");
+				printf("%s is connected from %s\r\n", list_c[index].nick, list_c[index].ip);
 
 				if (index<0) {
 					write(connfd, ERROR, strlen(ERROR));

@@ -1,2 +1,2 @@
-program : chat_time_main.c set_ticker.c
-	cc chat_time_main.c set_ticker.c -lcurses -o main
+program : chat_time_main.c
+	cc chat_time_main.c -lncurses -o main

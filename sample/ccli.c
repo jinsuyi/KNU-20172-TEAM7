@@ -5,7 +5,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/select.h>
-#include <arpa/inet.h>
 
 #define CHATDATA 1024
 
@@ -62,7 +61,7 @@ chatting(int sockfd, int maxfdp1, fd_set rset, char *argv[])
 		}
 	}
 }
-int main(int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	int sockfd;
 	struct sockaddr_in servaddr;
@@ -96,8 +95,6 @@ int main(int argc, char *argv[])
 	write(sockfd, argv[3], strlen(argv[3])); //send client's nickname
 	maxfdp1 = sockfd + 1;
 
-    printf("Commend : '/quit' = quit, '/list' = show client info \n");
-    printf("/smsg 'nickname' 'message' = 1:1 message\n");
 	chatting(sockfd, maxfdp1, rset, argv);
 
 	close(sockfd);
