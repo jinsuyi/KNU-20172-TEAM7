@@ -132,6 +132,27 @@ smsg_func(char* chatData, int i) {
 	}
 }
 
+int make_client(char* bufl, int port, char* nickname){
+
+    char *args[4];
+    int i;
+
+    for(i=0;i<5;i++){
+        args[i] = (char *)malloc(100);
+    }
+    
+    args[0] = "./client";
+    strcpy(args[1], bufl);
+    sprintf(args[2], "%d", port);
+    strcpy(args[3], nickname);
+    args[4] = 0;
+
+
+    execvp(args[0], args);
+    perror("client execute fail\n");
+    exit(1);
+}
+
 int f1ser(int port,  int ppl)
 {
 
@@ -141,14 +162,14 @@ int f1ser(int port,  int ppl)
 	int maxfd = 0;  
 	int i, j, n;
 	fd_set rset;
-
+    int pid;
 	int index;
 
 	char* token = NULL;
 	char buf1[MAXLINE];
 	char buf2[MAXLINE];
 	char chatData[CHATDATA];
-
+    char nick[100];
     
     printf("\n ******************** server domain *********************\n\n");
     printf(">> press key : ^\\ to quit\n\n\n");
@@ -179,6 +200,19 @@ int f1ser(int port,  int ppl)
 	memset(buf1, 0, sizeof(buf1));
 	inet_ntop(AF_INET, &servaddr.sin_addr, buf1, sizeof(buf1));
 	printf("    [server address is %s : %d]\r\n", buf1, ntohs(servaddr.sin_port));
+
+    printf("    type your nickname : ");
+    scanf("%s",nick);
+
+    pid = fork();
+    if( pid == -1)
+        perror("fork");
+    else if(pid == 0){
+        printf("**********Notice : you are admin. You get to see the address of the joiner.\n");
+        printf("**********Warning : if you close the room, other user in the room will no long be able to chat\n");
+                }
+    else
+        make_client(buf1,port,nick) ;
 
 	for (; ; )
 	{
