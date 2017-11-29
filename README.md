@@ -1,2 +1,4 @@
 # KNU-20172-TEAM7
 system programming term project 'team7'
+
+hello world
