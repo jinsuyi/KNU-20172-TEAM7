@@ -1,33 +1,32 @@
-#include <stdio.h>
-#include <curses.h>
-#include <signal.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-#include "f1ser.c"
+#include "header.h"
+
+#include "exec_chat1.c"
+#include "exec_chat2.c"
+//#include "exec_time1.c"
+//#include "exec_time2.c"
+
+#define BACKMENU "Back to top menu"
+#define EXITING "Exiting program"
 
 int row, col;
 int count = 0;
 
 int set_ticker(int );
+void tty_mode(int);
 
 void main_screen(void );
-void chat_menu(void );
-void time_menu(void );
-void exiting(void );
-void exec_func1(void);
-void tty_mode(int how);
+void chat_menu(int );
+void time_menu(int );
+void loading(char* );
 
-int main()
+int main()	
 {
 	int c;
-
-    tty_mode(0); // 현재 tty 저장 
+ 
+	tty_mode(0);
 	initscr(); // 초기화
 	crmode();
 	noecho();
-	clear();
-
 
 	main_screen();	// 메인 화면
 
@@ -40,16 +39,28 @@ int main()
 		}
 		if(c=='1'){ // 채팅 메뉴 
 			clear();
-			chat_menu();
+			chat_menu(0);
 			while(1){ // 'B'입력 시 메인메뉴, '1'입력 시 1번메뉴, '2'입력 시 2번 메뉴
 				c= getchar();
-				if(c=='1'){ 
+				if(c=='1'){
 					clear();
-                    exec_func1();    					
+					chat_menu(1);
+					
+					tty_mode(1);
+					exec_chat1(); // 해당 함수 끝난 후 다시 상위 메뉴로 돌아가기
+
+					loading(BACKMENU); 
+					chat_menu(0);
 				}
 				if(c=='2'){ 
 					clear();
-					refresh();					
+					chat_menu(2);
+		
+					tty_mode(1);
+					exec_chat2();					
+
+					loading(BACKMENU); 
+					chat_menu(0);					
 				}
 				if(c=='B'){
 					clear();
@@ -60,16 +71,26 @@ int main()
 		}
 		if(c=='2'){ // 시간표 메
 			clear();
-			time_menu();
+			time_menu(0);
 			while(1){ // 'B'입력 시 메인메뉴, '1'입력 시 1번메뉴, '2'입력 시 2번 메뉴
 				c= getchar();
 				if(c=='1'){ 
 					clear();
-					refresh();					
+					time_menu(1);
+		
+					//exec_time1();
+				
+					loading(BACKMENU); 
+					time_menu(0);						
 				}
 				if(c=='2'){ 
 					clear();
-					refresh();					
+					time_menu(1);
+		
+					//exec_time2();					
+
+					loading(BACKMENU); 
+					time_menu(0);					
 				}
 				if(c=='B'){
 					clear();
@@ -80,8 +101,8 @@ int main()
 		}
 	}
 
-	exiting();  // 종료 화면
-    tty_mode(1);
+	loading(EXITING);  // 종료 화면
+   	tty_mode(1);
 	endwin(); // 종료
 
 	return 0;
@@ -89,11 +110,13 @@ int main()
 
 void main_screen(void ) // 메인메뉴
 {
+	clear();
+	
 	move(1, 2);
 	addstr("******************* Chatting and Timetable **********************");
 	move(2, 2);
 	addstr(">> press key : '1' : Chatting, '2' : Time Table, 'Q' : exit");	
-;
+
 	move(5, 2);
 	addstr("         1. Chatting");
 
@@ -117,142 +140,150 @@ void main_screen(void ) // 메인메뉴
 	refresh();
 }
 
-void chat_menu() // 채팅 메뉴
+void chat_menu(int mode) // 채팅 메뉴
 {
-	move(1, 2);
-	addstr("******************* Chatting - Create or Enter ******************");
-	move(2, 2);
-	addstr(">> press key : '1' : Create, '2' : Enter, 'B' : back");	
+	clear();
+	if(mode == 0){
+		move(1, 2);
+		addstr("******************* Chatting - Create or Enter ******************");
+		move(2, 2);
+		addstr(">> press key : '1' : Create, '2' : Enter, 'B' : back");	
 
-	move(5, 2);
-	addstr("         1. Create in chat room");
+		move(5, 2);
+		addstr("         1. Create in chat room");
 
-	move(8, 2);
-	addstr("         2. Enter the chat room");
+		move(8, 2);
+		addstr("         2. Enter the chat room");
 
-	move(13, 25);
-	addstr("*** System Programming - TEAM7 ***");
+		move(13, 25);
+		addstr("*** System Programming - TEAM7 ***");
 	
-	move(14, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(15, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(16, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(17, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(18, 25);
-	addstr("**********************************");
+		move(14, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(15, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(16, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(17, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(18, 25);
+		addstr("**********************************");
+	}
+	else if(mode == 1){
+		move(1, 2);
+		addstr("********************** Create Chatting Room *********************");
+		//move(2, 2);
+		//addstr(">> press key : 'B' : back");	
+	}
+	else if(mode == 2){
+		move(1, 2);
+		addstr("*********************** Enter Chatting Room *********************");
+		//move(2, 2);
+		//addstr(">> press key : 'B' : back");	
+	}
 	
 	refresh();
 }
 
-void time_menu()  // 시간표 메뉴
+void time_menu(int mode)  // 시간표 메뉴
 {
-	move(1, 2);
-	addstr("******************* TimeTable - Notify or Modify ****************");
-	move(2, 2);
-	addstr(">> press key : '1' : Notify, '2' : Modify, 'B' : back");	
-
-	move(5, 2);
-	addstr("         1. Notify my timetable & Send Message");
-
-	move(8, 2);
-	addstr("         2. Modify my timetable");
-
-	move(13, 25);
-	addstr("*** System Programming - TEAM7 ***");
+	clear();
 	
-	move(14, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(15, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(16, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(17, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
-	move(18, 25);
-	addstr("**********************************");
+	if(mode == 0){
+		move(1, 2);	
+		addstr("******************* TimeTable - Notify or Modify ****************");
+		move(2, 2);
+		addstr(">> press key : '1' : Notify, '2' : Modify, 'B' : back");	
+		move(5, 2);
+		addstr("         1. Notify my timetable");
+
+		move(8, 2);
+		addstr("         2. Modify my timetable");
+
+		move(13, 25);
+		addstr("*** System Programming - TEAM7 ***");
 	
+		move(14, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(15, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(16, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(17, 25);
+		addstr("*       2014105078 Lee Hae-JIn   *");
+		move(18, 25);
+		addstr("**********************************");
+	}
+	else if(mode == 1){
+		move(1, 2);	
+		addstr("*********************** Notify my timetable *********************");
+		//move(2, 2);
+		//saddstr(">> press key : 'B' : back");
+	}
+	else if(mode == 2){
+		move(1, 2);	
+		addstr("*********************** Modify my timetable *********************");
+		//move(2, 2);
+		//addstr(">> press key : 'B' : back");
+	}	
+
 	refresh();
 }
 
-void exiting(void ) // 종료 시 화면
+void loading(char *string ) // 종료 시 화면
 {
 	int delay = 200;
-	void move_msg(int );
-
-	mvaddstr(8, 13, "Exiting program");
-	row=8, col= 28;
+	void move_msg(int signum){
+		signal(SIGALRM, move_msg);
+		mvaddstr(row, col, ".");	
+		count++;
+		col++;			
+		refresh();
+	}
+	clear();
+	if(strcmp(string, BACKMENU) == 0 ){
+		crmode();
+		noecho();	
+	}
+	mvaddstr(8, 13, string);
+	row=8, col= 13 + strlen(string);
 
 	signal(SIGALRM, move_msg);
 	set_ticker(delay);
 	
 	while(1){
-		if (count == 10)
+		if (count == 10){
+			count=0;
+			alarm(0);
 			break;
+		}
 	}
 }
 
-void move_msg(int signum) // 종료화면 디테일
+int set_ticker(int n_msecs)
 {
-	signal(SIGALRM, move_msg);
-	mvaddstr(row, col, ".");	
-	count++;
-	col++;			
-	refresh();		
-}
+	struct itimerval new_timeset;
+	long n_sec, n_usecs;
 
-void exec_func1(void){ // 기능 1번
-    
-    int port, ppl;
-    char tmp[100];
-    clear();
-    refresh();
-    tty_mode(1);
-	printf("\n******************* Create Chatting Room **********************\n\n");
-	printf(">> press key : 'B' : back \n\n\n\n\n");	
+	// sec, usec 조정
+	n_sec = n_msecs / 1000;
+	n_usecs = (n_msecs % 1000) * 1000L ;  
+	
+	new_timeset.it_interval.tv_sec = n_sec;
+	new_timeset.it_interval.tv_usec = n_usecs;
+	new_timeset.it_value.tv_sec = n_sec;
+	new_timeset.it_value.tv_usec = n_usecs;
 
-	printf("         1. Type the port number: ");
-    scanf("%s", tmp);
-    if(!strcmp(tmp,"B")){
-        noecho();
-        crmode();
-        clear();
-       
-        chat_menu();
-        refresh();
-        return;
-    }
-    else
-        port = atoi(tmp);
-    
-    printf("\n\n\n\n");
-    printf("         2. Type the max people allowed in the room: ");
-    scanf("%s", tmp);
-    if(!strcmp(tmp,"B")){
-        noecho();
-        crmode();
-        clear();
-        chat_menu();
-        refresh();
-        return;
-    }
-    else
-        ppl = atoi(tmp);
-    printf("\n");
-    
-    clear();
-    refresh();
-    f1ser(port, ppl);
+	// setitimer : 구조체에서 명시된 값에 의해 타이머를 설정
+	// ITIMER_REAL : 실시간으로 감소하고타이머 만료 시 SIGALRM 신호 전달
+	return setitimer(ITIMER_REAL, &new_timeset, NULL);
 }
 
 void tty_mode(int how)
 {
-    static struct termios original_mode;
-    
-    if(how == 0)
-        tcgetattr(0, &original_mode);
-    else
-        tcsetattr(0,TCSANOW, &original_mode);
+	static struct termios original_mode;
+	if(how == 0)
+		tcgetattr(0, &original_mode);
+	else
+		tcsetattr(0, TCSANOW, &original_mode);
 }
