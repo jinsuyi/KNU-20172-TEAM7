@@ -102,7 +102,6 @@ int main()
 	}
 
 	loading(EXITING);  // 종료 화면
-   	tty_mode(1);
 	endwin(); // 종료
 
 	return 0;
