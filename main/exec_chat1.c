@@ -296,11 +296,7 @@ int f1ser(int port,  int ppl)
 				if ((n = read(list_c[i].socket_num, chatData, sizeof(chatData)))>0) {
 					if (!strcmp(chatData, quit)) {//disconnect from the client "i"
 						quit_func(i);
-						for (j = 0; j<MAX_CLIENT; j++) { // '/quit' 입력시 남은사람 수가 0이면 종료
-							if (list_c[j].socket_num != INVALID_SOCK) num_user++;
-							if (num_user == 0) return 0;
-							else num_user =0;	
-						}
+                        popClient(list_c[i].socket_num);
 						continue;
 					}
 					if (!strcmp(chatData, list)) {//print the list of clients
