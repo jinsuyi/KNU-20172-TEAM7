@@ -8,11 +8,11 @@ int MAX_CLIENT =  1000;
 int usr_max_client = 0;
 char greeting[] = "\n>> Welcome to chatting room ( /quit : exit, /list : user list )\n";
 char ERROR[] = "\n>> Sorry, the room is full! ( /quit : exit )\n";
+char SERVER_QUIT[] = "\n>> There is no server owner. Please input \"/quit\"\n";
 
 char quit[] = "/quit\n";
 char list[] = "/list\n";
 char smsg[] = "/smsg";
-char smsg_quit[] = "/smsg_quit\n";
 
 struct List_c {
 	int socket_num;
@@ -38,11 +38,19 @@ void exec_chat1(void ){ // first menu of chatting
 	
 	mvaddstr(3,2,"         1. Type the port number : ");
 	refresh();
-	scanf("%d", &port);
+	if(scanf("%d", &port) != 1){
+		printf("\n\n>> Wrong input\n");
+		sleep(2);
+		return;
+	}
 
 	mvaddstr(5,2,"         2. Type the max people allowed in the room : ");
 	refresh();
-    	scanf("%d", &ppl);
+	if(scanf("%d", &ppl) != 1){
+		printf("\n\n>> Wrong input\n");
+		sleep(2);
+		return;
+	}
 
 	f1ser(port, ppl);
 }
@@ -68,7 +76,6 @@ int pushClient(int connfd, char* c_nick, char* c_ip, int c_port) {
 int popClient(int s)
 {
 	int i;
-
 
 	for (i = 0; i<usr_max_client; i++) {
 		if (s == list_c[i].socket_num) {
@@ -104,6 +111,8 @@ void quit_func(int i) {
 			sprintf(buf1, "    >> %s has left the %s\r\n", list_c[i].nick, list_c[i].ip);
 			write(list_c[j].socket_num, buf1, strlen(buf1));
 		}
+
+	popClient(list_c[i].socket_num);
 }
 
 void list_func(int i) {
@@ -173,7 +182,8 @@ void exec_client(char* ip, int port, char* nick)
 
 
 	if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
-		printf("Can not connect\n");
+		printf("\n\n>> Can not connect\n");
+		sleep(2);
 		return;
 	}
 
@@ -187,7 +197,7 @@ void exec_client(char* ip, int port, char* nick)
 
 int f1ser(int port,  int ppl)
 {
-	int num_user = 0;
+	struct linger ling; // TIME_WAIT 방지
 	int connfd, listenfd;
 	struct sockaddr_in servaddr, cliaddr;
 	int clilen;
@@ -208,17 +218,25 @@ int f1ser(int port,  int ppl)
 	usr_max_client = MAX_CLIENT;
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	// TIME_WAIT 방지 -> 기존에 썻던 port번호를 다시 쓸 수 있음
+	ling.l_onoff = 1;
+	ling.l_linger = 0;
+	setsockopt(listenfd, SOL_SOCKET,SO_LINGER, &ling,sizeof(ling));
+
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(port);
 
 	if (bind(listenfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) == -1) {
-		printf("   Error : that port is already being used\n");
+		printf("\n\n>> Error : that port is already being used\n");
+		sleep(2);
 		return -1;
 	}
 	if (listen(listenfd, MAX_CLIENT) == -1) {
-		printf("    Room is full\n");
+		printf("\n\n>> Room is full\n");
+		sleep(2);
 		return -1;
 	}
 
@@ -234,87 +252,97 @@ int f1ser(int port,  int ppl)
 	printf("     - type your nickname : ");
    	scanf("%s",nick);
 
+
 	pid = fork();
 	if( pid == -1)
 	        perror("fork");
 	else if(pid == 0){
-        	printf("\n>> Notice : you are admin. You get to see the address of the joiner.\n");
-        	printf(">> Warning : if you close the room, other users can't chat anymore\n");
+        	exec_client(buf1,port,nick);
+		exit(0);
 	}
-	else	exec_client(buf1,port,nick);
+	else{
+		printf("\n>> - Notice : you are admin. You get to see the address of the joiner.\n");
+        	printf("   - Warning : if you close the room, other users can't chat anymore\n");
 
-	for (; ; )
-	{
+		for (; ; )
+		{
 		
-		maxfd = listenfd;
+			maxfd = listenfd;
 
-		FD_ZERO(&rset);
-		FD_SET(listenfd, &rset);
-		for (i = 0; i<MAX_CLIENT; i++) {
-			if (list_c[i].socket_num != INVALID_SOCK) {	
-				FD_SET(list_c[i].socket_num, &rset);
-				if (list_c[i].socket_num > maxfd) maxfd = list_c[i].socket_num;
-			}
-		}
-		maxfd++;
-
-		if (select(maxfd, &rset, (fd_set *)0, (fd_set *)0, (struct timeval *)0) < 0) {
-			printf(">> Select error\n");
-			exit(1);
-		}
-
-		if (FD_ISSET(listenfd, &rset)) { //클라이언트 push , 연결메시지 
-			clilen = sizeof(cliaddr);
-			if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) > 0) {
-				memset(buf1, 0, sizeof(buf1));
-				memset(buf2, 0, sizeof(buf2));
-				read(connfd, buf1, sizeof(buf1));//read client's nickname
-				inet_ntop(AF_INET, &cliaddr.sin_addr, buf2, sizeof(buf2));
-				index = pushClient(connfd, buf1, buf2, ntohs(cliaddr.sin_port));//push socknum,nick,ip,port_num of client
-                if(index!=-1)
-                    printf("  (server) %s is connected from %s\r\n", list_c[index].nick, list_c[index].ip);
-                else
-                    printf("  (server) due to the room full, connection rejected\n");
-
-				if (index<0) {
-					write(connfd, ERROR, strlen(ERROR));
-					close(connfd);
-				}
-				else {
-					write(connfd, greeting, strlen(greeting));
-					for (i = 0; i<MAX_CLIENT; i++)
-						if (i != index && list_c[i].socket_num != INVALID_SOCK) {
-							constr_func(i, index);
-					}
+			FD_ZERO(&rset);
+			FD_SET(listenfd, &rset);
+			for (i = 0; i<MAX_CLIENT; i++) {
+				if (list_c[i].socket_num != INVALID_SOCK) {	
+					FD_SET(list_c[i].socket_num, &rset);
+					if (list_c[i].socket_num > maxfd) maxfd = list_c[i].socket_num;
 				}
 			}
-		}
+			maxfd++;
 
-		for (i = 0; i<MAX_CLIENT; i++) {
-			if ((list_c[i].socket_num != INVALID_SOCK) && FD_ISSET(list_c[i].socket_num, &rset)) {
-				memset(chatData, 0, sizeof(chatData));
-				if ((n = read(list_c[i].socket_num, chatData, sizeof(chatData)))>0) {
-					if (!strcmp(chatData, quit)) {//disconnect from the client "i"
-						quit_func(i);
-                        popClient(list_c[i].socket_num);
-						continue;
-					}
-					if (!strcmp(chatData, list)) {//print the list of clients
-						list_func(i);
-						continue;
-					}
-					if (strstr(chatData, smsg) != NULL) {
-						if (smsg_func(chatData, i) == 0) continue;
-						else;
-					}
-					for (j = 0; j<MAX_CLIENT; j++) {//send chatting letters
-						if (list_c[i].socket_num != INVALID_SOCK)
-							if (j != i)
-								write(list_c[j].socket_num, chatData, sizeof(chatData));
-					}
+			// close(listenfd)로 인한 error
+			if (select(maxfd, &rset, (fd_set *)0, (fd_set *)0, (struct timeval *)0) < 0) {
+				printf("\n\n>> The server shuts down.\n");
+				sleep(2);
+				return 1;
+			}
 
+			if (FD_ISSET(listenfd, &rset)) { //클라이언트 push , 연결메시지 
+				clilen = sizeof(cliaddr);
+				if ((connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen)) > 0) {
+					memset(buf1, 0, sizeof(buf1));
+					memset(buf2, 0, sizeof(buf2));
+					read(connfd, buf1, sizeof(buf1));//read client's nickname
+					inet_ntop(AF_INET, &cliaddr.sin_addr, buf2, sizeof(buf2));
+					index = pushClient(connfd, buf1, buf2, ntohs(cliaddr.sin_port));//push socknum,nick,ip,port_num of client
+		        if(index!=-1)
+		            printf("  (server) %s is connected from %s\r\n", list_c[index].nick, list_c[index].ip);
+		        else
+		            printf("  (server) due to the room full, connection rejected\n");
 
+					if (index<0) {
+						write(connfd, ERROR, strlen(ERROR));
+						close(connfd);
+					}
+					else {
+						write(connfd, greeting, strlen(greeting));
+						for (i = 0; i<MAX_CLIENT; i++)
+							if (i != index && list_c[i].socket_num != INVALID_SOCK) {
+								constr_func(i, index);
+						}
+					}
 				}
+			}
+
+			for (i = 0; i<MAX_CLIENT; i++) {
+				if ((list_c[i].socket_num != INVALID_SOCK) && FD_ISSET(list_c[i].socket_num, &rset)) {
+					memset(chatData, 0, sizeof(chatData));
+					if ((n = read(list_c[i].socket_num, chatData, sizeof(chatData)))>0) {
+						if (!strcmp(chatData, quit)) {//disconnect from the client "i"
+							quit_func(i);
+							continue;
+						}
+						if (!strcmp(chatData, list)) {//print the list of clients
+							list_func(i);
+							continue;
+						}
+						if (strstr(chatData, smsg) != NULL) {
+							if (smsg_func(chatData, i) == 0) continue;
+							else;
+						}
+						for (j = 0; j<MAX_CLIENT; j++) {//send chatting letters
+							if (list_c[i].socket_num != INVALID_SOCK)
+								if (j != i)
+									write(list_c[j].socket_num, chatData, sizeof(chatData));
+						}
+					}
+				}
+			}
+			if(list_c[0].socket_num == INVALID_SOCK){ // server를 갖는 client가 server에 없을 경우
+				for (i = 0; i<MAX_CLIENT; i++) {// 각 client에게 /quit입력하라고 메세지 보냄
+					if (list_c[i].socket_num != INVALID_SOCK)
+							write(list_c[i].socket_num, SERVER_QUIT, sizeof(SERVER_QUIT));
+				}
+				close(listenfd);
 			}
 		}
 	}

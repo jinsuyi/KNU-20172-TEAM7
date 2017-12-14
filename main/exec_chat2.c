@@ -22,8 +22,9 @@ void chatting(int sockfd, int maxfdp1, fd_set rset, char *nickname)
 		FD_SET(sockfd, &rset);
 
 		if (select(maxfdp1, &rset, (fd_set *)0, (fd_set *)0, (struct timeval *)0) <0) {
-			printf("select error\n");
-			exit(1);
+			printf("\n\n>> select error\n");
+			sleep(2);
+			return;
 		}
 
 		if (FD_ISSET(sockfd, &rset)) {
@@ -50,9 +51,6 @@ void chatting(int sockfd, int maxfdp1, fd_set rset, char *nickname)
 				}
 				sprintf(chatData, "[%s] %s", nickname, buf);
 				write(sockfd, chatData, strlen(chatData));
-
-
-
 			}
 		}
 	}
@@ -63,6 +61,7 @@ void exec_chat2()
 	char nick[MAXLINE], ip[MAXLINE];
 
 	int sockfd;
+	struct linger ling; // CLOSE_WAIT 방지
 	struct sockaddr_in servaddr;
 	int maxfdp1;
 	fd_set rset;
@@ -72,29 +71,35 @@ void exec_chat2()
 	char buf[CHATDATA];
 	int n;
 	char* token = NULL;
-	
-	mvaddstr(3,2,"         1. Type the ip address : ");
-	refresh();
-	scanf("%s", ip);
 
-	mvaddstr(5,2,"         2. Type the port number : ");
+	mvaddstr(3,2,"         1. Type the port number : ");
 	refresh();
-	scanf("%d", &port);
+	if(scanf("%d", &port) != 1){
+		printf("\n\n>> Wrong input\n");
+		sleep(2);
+		return;
+	}
 	 
-	mvaddstr(7,2,"         3. Type your name : ");
+	mvaddstr(5,2,"         2. Type your name : ");
 	refresh();
 	scanf("%s", nick);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+	// CLOSE_WAIT 방지
+	ling.l_onoff = 1;
+	ling.l_linger = 0;
+	setsockopt(sockfd, SOL_SOCKET,SO_LINGER, &ling,sizeof(ling));
+
 	memset(&servaddr, 0, sizeof(servaddr));
-	servaddr.sin_addr.s_addr = inet_addr(ip);
+	servaddr.sin_addr.s_addr = inet_addr("0.0.0.0");
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(port);
 
 
 	if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
-		printf("Can not connect\n");
+		printf("\n\n>> Can not connect\n");
+		sleep(2);
 		return;
 	}
 

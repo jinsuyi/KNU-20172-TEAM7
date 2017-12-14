@@ -25,6 +25,7 @@ int main()
  
 	tty_mode(0);
 	initscr(); // 초기화
+
 	crmode();
 	noecho();
 
@@ -39,28 +40,26 @@ int main()
 		}
 		if(c=='1'){ // 채팅 메뉴 
 			clear();
-			chat_menu(0);
 			while(1){ // 'B'입력 시 메인메뉴, '1'입력 시 1번메뉴, '2'입력 시 2번 메뉴
+				chat_menu(0);
 				c= getchar();
 				if(c=='1'){
 					clear();
 					chat_menu(1);
-					
 					tty_mode(1);
+
 					exec_chat1(); // 해당 함수 끝난 후 다시 상위 메뉴로 돌아가기
 
 					loading(BACKMENU); 
-					chat_menu(0);
 				}
 				if(c=='2'){ 
 					clear();
 					chat_menu(2);
-		
 					tty_mode(1);
+
 					exec_chat2();					
 
-					loading(BACKMENU); 
-					chat_menu(0);					
+					loading(BACKMENU);					
 				}
 				if(c=='B'){
 					clear();
@@ -71,26 +70,26 @@ int main()
 		}
 		if(c=='2'){ // 시간표 메
 			clear();
-			time_menu(0);
 			while(1){ // 'B'입력 시 메인메뉴, '1'입력 시 1번메뉴, '2'입력 시 2번 메뉴
+				time_menu(0);
 				c= getchar();
 				if(c=='1'){ 
 					clear();
 					time_menu(1);
-		
+					tty_mode(1);
+
 					//exec_time1();
 				
-					loading(BACKMENU); 
-					time_menu(0);						
+					loading(BACKMENU); 						
 				}
 				if(c=='2'){ 
 					clear();
 					time_menu(1);
+					tty_mode(1);
 		
 					//exec_time2();					
 
-					loading(BACKMENU); 
-					time_menu(0);					
+					loading(BACKMENU); 				
 				}
 				if(c=='B'){
 					clear();
@@ -102,12 +101,11 @@ int main()
 	}
 
 	loading(EXITING);  // 종료 화면
-	endwin(); // 종료
 
 	return 0;
 }
 
-void main_screen(void ) // 메인메뉴
+void main_screen() // 메인메뉴
 {
 	clear();
 	
@@ -256,6 +254,11 @@ void loading(char *string ) // 종료 시 화면
 			alarm(0);
 			break;
 		}
+	}
+
+	if(strcmp(string, EXITING) == 0 ){
+		tty_mode(1);
+		endwin();
 	}
 }
 
