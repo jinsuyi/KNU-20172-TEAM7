@@ -1,123 +1,115 @@
-#include <stdio.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <utmp.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
+extern  void tty_mode(int);
 
 #define BUFF_SIZE 1024
-
+#define MAX_STRING 50
 
 void set_cr_noecho_mode(void);
-void tty_mode(int);
-int alarms = 0;//while문 빠져나가기
 int readtxt(int);
-void quits(int);
 
-int exec_time1()
+void exec_time1()
 {
-	int fd;
+	char name[MAX_STRING];
+	char day[MAX_STRING];
 	char buf[BUFSIZ];
 
 	//utmp
 	struct utmp current;
 	int utmpfd;
 	int reclen = sizeof(current);
-	
 	int find = 0;
 	char dev[100]="/dev/";
+	
+	//tty
+	int fd;
+	int input; //
 
-	int input;//
 
-    char av[100];
-    printf("please enter ttyname (ex> /dev/pts/0)\n");
-    scanf("%s", av);
-	/*if(ac!=2)//확인
-	{
-		fprintf(stderr, "ex> usage: ./write /dev/pts/0\n");
-		exit(1);
+	mvaddstr(3,2,"         1. Type the username : ");
+	refresh();
+	if(scanf("%s", name) != 1){
+		printf("\n\n>> Wrong input\n");
+		sleep(2);
+		return;
 	}
-    */
-    
+	 
+	/*
+	mvaddstr(5,2,"         2. Type the ? : ");
+	refresh();
+	scanf("%s", nick);*/
+
 	if((utmpfd = open(UTMP_FILE, O_RDONLY)) == -1)
 	{
-		perror(UTMP_FILE);
-		exit(1);
+		printf("\n\n>> Can't open UTMP_FILE\n");
+		sleep(2); 
+		return;
 	}
 	while(read(utmpfd, &current, reclen) == reclen && find == 0)
 	{
 		if(current.ut_type == USER_PROCESS)
 		{
-			strcat(dev, current.ut_line);
-            printf("%s is exist, %s\n", dev, current.ut_user);
-			if(strcmp(av, dev) == 0)
-            {
+			if(strcmp(name, current.ut_name) == 0){ 
 				find = 1;
-                printf("I find him!\n");
-
-            }
-			strcpy(dev, "/dev/");
+				strcat(dev, current.ut_line);
+			}
 		}
 	}
 	close(utmpfd);
 
-	if(find == 1)//log in
+	if(find == 1) //log in
 	{
-		fd = open(av, O_WRONLY);
-		if(fd == -1)
-		{
-			perror(av);
-			exit(1);
+		printf("\n>> %s is login now [TTY : %s]\n", name, dev);
+		fd = open(dev, O_WRONLY);
+		if(fd == -1){
+			printf("\n\n>> Can't open tty : %s\n",dev);
+			sleep(2);
+			return;
 		}
-		printf("he is log in\n");
-		tty_mode(0);
+
+		//tty_mode(0);
+
+		printf(">> Press key : '1' = Send message, '2' = Send my schedule, 'q' = quit\n");
+		set_cr_noecho_mode();
 
 		while(1)
 		{
-			printf("press key : '1' = Send message, '2' = Send my schedule, 'q' = quit\n");
-			alarms=0;
-			set_cr_noecho_mode();
 			input = getchar();
-			//printf("input : %d\n",input);
-			if(input == 49)
-			{
+			if(input == 49){
+				printf("\n  -> Type message : ");
+
 				tty_mode(1);
-				printf("Send message\n");
-				printf("press key : 'ctrl + c + Enter' = quit\n");
-				while( fgets(buf, BUFSIZ, stdin) != NULL)
-                                {
-                                        if(write(fd, buf, strlen(buf)) == -1)
-                                                break;
-                                        signal(SIGINT, quits);
-                                        if(alarms==1)
-                                                break;
-                                }
+				if(fgets(buf, BUFSIZ, stdin) != NULL){
+					if(write(fd, buf, strlen(buf)) == -1){
+						printf("\n\n>> You can't send a message to \"%s\"\n",name);
+						sleep(2);
+						break;
+					}
+					else printf("           [complete to send message]\n");
+				}
+				set_cr_noecho_mode();
 			}
 
 			if(input == 50)
 			{
-				printf("My schedule\n");
+				printf("\n  -> Sending my schedule\n");
+				tty_mode(1);
 				readtxt(fd);
+				set_cr_noecho_mode();			
 			}
 			
 			if(input == 113)
 			{
-				printf("Quit\n");
+				printf("\n>> Quit!\n");
+				sleep(1);
 				break;
 			}
 		}	
 		close(fd);
-		tty_mode(1);
 	} 
-	else//log out
+	else //user log out
 	{
-		printf("he is log out\n");
+		printf("\n\n>> %s is not log in...\n", name);
+		sleep(2);
+		return;
 	}
 }
 
@@ -131,20 +123,6 @@ void set_cr_noecho_mode(void)
         tcsetattr(0, TCSANOW, &ttystate);
 }
 
-void tty_mode(int how)
-{
-        static struct termios original_mode;
-        if(how==0)
-                tcgetattr(0, &original_mode);
-        else
-                tcsetattr(0, TCSANOW, &original_mode);
-}
-
-void quits(int signum)
-{
-	alarms =1;
-}
-
 int readtxt(int fd)
 {
 	int ffd;
@@ -155,15 +133,15 @@ int readtxt(int fd)
 		read(ffd, buff, BUFF_SIZE);
 		puts(buff);
 		if(write(fd, buff, strlen(buff)) == -1)
-			printf("sending failed\n");
-		close(fd);
+			printf("\n           [Sending failed]\n");
+		close(ffd);
 	}
 	else
 	{
-		printf("file open failed\n");
+		printf("\n\n>> Fail to open the file\n");
+		sleep(2);
 		exit(1);
 	}
-	printf("Sending complete\n");
+	printf("\n           [Sending complete]\n");
 	return 0;
 }
-

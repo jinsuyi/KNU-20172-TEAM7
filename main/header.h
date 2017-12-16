@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <utmp.h>
+#include <time.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

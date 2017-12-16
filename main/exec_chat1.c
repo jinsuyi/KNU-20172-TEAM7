@@ -6,7 +6,7 @@ extern void chatting(int , int , fd_set , char *);
 
 int MAX_CLIENT =  1000;
 int usr_max_client = 0;
-char greeting[] = "\n>> Welcome to chatting room ( /quit : exit, /list : user list )\n";
+char greeting[] = "\n>> Welcome to chatting room ( /quit : exit, /list : user list, /smsg : whisper)\n";
 char ERROR[] = "\n>> Sorry, the room is full! ( /quit : exit )\n";
 char SERVER_QUIT[] = "\n>> There is no server owner. Please input \"/quit\"\n";
 

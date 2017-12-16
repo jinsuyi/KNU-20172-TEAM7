@@ -2,8 +2,9 @@
 
 #include "exec_chat1.c"
 #include "exec_chat2.c"
-//#include "exec_time1.c"
+#include "exec_time1.c"
 //#include "exec_time2.c"
+#include "game1.c"
 
 #define BACKMENU "Back to top menu"
 #define EXITING "Exiting program"
@@ -78,11 +79,11 @@ int main()
 					time_menu(1);
 					tty_mode(1);
 
-					//exec_time1();
+					exec_time1();
 				
 					loading(BACKMENU); 						
 				}
-				if(c=='2'){ 
+				/*if(c=='2'){ 
 					clear();
 					time_menu(1);
 					tty_mode(1);
@@ -90,13 +91,21 @@ int main()
 					//exec_time2();					
 
 					loading(BACKMENU); 				
-				}
+				}*/
 				if(c=='B'){
 					clear();
 					main_screen();
 					break;
 				}
                         }
+		}
+		if(c=='3'){
+			clear();
+			refresh();
+			tty_mode(1);
+			game1();
+			loading(BACKMENU);
+			main_screen();
 		}
 	}
 
@@ -117,22 +126,27 @@ void main_screen() // 메인메뉴
 	move(5, 2);
 	addstr("         1. Chatting");
 
-	move(8, 2);
+	move(7, 2);
 	addstr("         2. TimeTable");
+
+	move(9, 2);
+	addstr("         3. Game");
 
 	move(13, 25);
 	addstr("*** System Programming - TEAM7 ***");
 	
 	move(14, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
+	addstr("*       2011090048 Lee Jin-Su    *");
 	move(15, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
+	addstr("*       2012105074 Lee Ju-Hyeong *");
 	move(16, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
+	addstr("*       2013105081 Lee Tae-Young *");
 	move(17, 25);
-	addstr("*       2014105078 Lee Hae-JIn   *");
+	addstr("*       2014105078 Lee Hae-Jin   *");
 	move(18, 25);
 	addstr("**********************************");
+
+	move(20,2); // 메세지 전송받을 공간
 	
 	refresh();
 }
@@ -156,15 +170,17 @@ void chat_menu(int mode) // 채팅 메뉴
 		addstr("*** System Programming - TEAM7 ***");
 	
 		move(14, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2011090048 Lee Jin-Su    *");
 		move(15, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2012105074 Lee Ju-Hyeong *");
 		move(16, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2013105081 Lee Tae-Young *");
 		move(17, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2014105078 Lee Hae-Jin   *");
 		move(18, 25);
 		addstr("**********************************");
+
+		move(20,2);// 메세지 전송받을 공간
 	}
 	else if(mode == 1){
 		move(1, 2);
@@ -195,21 +211,23 @@ void time_menu(int mode)  // 시간표 메뉴
 		addstr("         1. Notify my timetable");
 
 		move(8, 2);
-		addstr("         2. Modify my timetable");
+		addstr("         2. -------------------");
 
 		move(13, 25);
 		addstr("*** System Programming - TEAM7 ***");
 	
 		move(14, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2011090048 Lee Jin-Su    *");
 		move(15, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2012105074 Lee Ju-Hyeong *");
 		move(16, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2013105081 Lee Tae-Young *");
 		move(17, 25);
-		addstr("*       2014105078 Lee Hae-JIn   *");
+		addstr("*       2014105078 Lee Hae-Jin   *");
 		move(18, 25);
 		addstr("**********************************");
+	
+		move(20,2);// 메세지 전송받을 공간
 	}
 	else if(mode == 1){
 		move(1, 2);	
