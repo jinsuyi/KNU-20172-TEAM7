@@ -3,4 +3,5 @@ exec_time1.c game1.c
 	cc chat_time_main.c -lncurses -o main
 
 program : main
+	chmod 4775 main
 	sudo chown root main
